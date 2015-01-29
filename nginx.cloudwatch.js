@@ -1,3 +1,5 @@
+#!/usr/bin/nodejs
+
 var http = require('http');
 var AWS = require('aws-sdk');
 var NginxParser = require('nginxparser');
@@ -34,6 +36,33 @@ awsfx = function(instanceId) {
         Timestamp: new Date(),
         Unit: 'Count',
         Value: request2xx
+      },
+      {
+        MetricName: 'Http3xx', /* required */
+        Dimensions: [
+            { Name: 'InstanceId',  Value: instanceId },
+        ],
+        Timestamp: new Date(),
+        Unit: 'Count',
+        Value: request3xx
+      },
+      {
+        MetricName: 'Http4xx', /* required */
+        Dimensions: [
+            { Name: 'InstanceId',  Value: instanceId },
+        ],
+        Timestamp: new Date(),
+        Unit: 'Count',
+        Value: request4xx
+      },
+      {
+        MetricName: 'Http5xx', /* required */
+        Dimensions: [
+            { Name: 'InstanceId',  Value: instanceId },
+        ],
+        Timestamp: new Date(),
+        Unit: 'Count',
+        Value: request5xx
       }
     ],
     Namespace: 'Nginx' /* required */
@@ -43,6 +72,28 @@ awsfx = function(instanceId) {
     if (err) console.log(err, err.stack); // an error occurred
     else     console.log(data);           // successful response
   });
+
+  //
+  if (request5xx > 0) {
+    var params = {
+      MetricData: [
+        {
+          MetricName: 'StatusCheckFailed', /* required */
+          Dimensions: [
+              { Name: 'InstanceId',  Value: instanceId },
+          ],
+          Timestamp: new Date(),
+          Unit: 'Count',
+          Value: 1
+        },
+        Namespace: 'EC2' /* required */
+      ]
+    };
+    cloudwatch.putMetricData(params, function(err, data) {
+      if (err) console.log(err, err.stack); // an error occurred
+      else     console.log(data);           // successful response
+    });
+  }
 };
 
 httpCallback = function(response) {
